@@ -22,9 +22,18 @@ export default function Home() {
     }
     fetchTasks();
   }, []);
+// 1. Calculate points for User A
+const pointsA = tasks
+  .filter((t: any) => t.assignee === "User A")
+  .reduce((acc: number, t: any) => acc + Number(t.size), 0);
 
+// 2. Calculate points for User B
+const pointsB = tasks
+  .filter((t: any) => t.assignee === "User B")
+  .reduce((acc: number, t: any) => acc + Number(t.size), 0);
   // SAVE NEW TASK TO SUPABASE
   const addTask = async (taskData: any) => {
+    console.log("Attempting to add task:", taskData); // Debugging line
     const { data, error } = await supabase
       .from('tasks')
       .insert([{
@@ -34,10 +43,14 @@ export default function Home() {
         // project_id: 'your-project-uuid' <-- We'll automate this later
       }])
       .select();
-
+    if (error) {
+    console.error("Supabase Error:", error.message);
+    return;
+  }
     if (data) {
-      setTasks([data[0], ...tasks]); // Optimistic update
-    }
+    console.log("Success! Task saved:", data[0]);
+    setTasks((prevTasks) => [data[0], ...prevTasks]);
+  }
   };
 
   if (loading) return <div className="p-20 text-center font-bold">Loading Engine...</div>;
