@@ -1,21 +1,36 @@
-import React from 'react';
-import { Calendar, ExternalLink, FileText, User, Link as LinkIcon, Trash2, CheckCircle, Undo, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Calendar, ExternalLink, FileText, User, Trash2, 
+  CheckCircle, Undo, AlertCircle, Edit2, X, Save 
+} from 'lucide-react';
 
-const TaskCard = ({ task, onDelete, onToggleComplete }: { 
+const TaskCard = ({ task, onDelete, onToggleComplete, onUpdate }: { 
   task: any, 
   onDelete: (id: string) => void,
-  onToggleComplete: (id: string, currentStatus: boolean) => void 
+  onToggleComplete: (id: string, currentStatus: boolean) => void,
+  onUpdate: (id: string, data: any) => void
 }) => {
+  // 1. EDIT STATE
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editSize, setEditSize] = useState(task.size);
+  const [editUrl, setEditUrl] = useState(task.drive_url || '');
+  // 2. DERIVED STATE
   const isOverdue = !task.is_completed && task.due_date && new Date(task.due_date) < new Date();
   const projectCount = task.task_project_links?.length || 0;
-
-  // 1. Dependency Logic
-  // Look into the 'blocked_by' array we joined in page.tsx
   const dependencies = task.blocked_by || [];
   const blockingTasks = dependencies.filter((d: any) => d.depends_on && !d.depends_on.is_completed);
   const isBlocked = blockingTasks.length > 0;
 
-  // 2. Dynamic Styling Logic
+  // 3. ACTIONS
+const handleSave = () => {
+  onUpdate(task.id, { 
+    title: editTitle, 
+    size: Number(editSize),
+    drive_url: editUrl // Now sending the new URL
+  });
+  setIsEditing(false);
+};
   const getCardStyles = () => {
     if (task.is_completed) return 'bg-green-50 border-green-200 opacity-75';
     if (isBlocked) return 'bg-slate-50 border-dashed border-slate-300 shadow-none';
@@ -23,10 +38,57 @@ const TaskCard = ({ task, onDelete, onToggleComplete }: {
     return 'bg-white border-slate-200 hover:shadow-md';
   };
 
+  // --- EDIT MODE UI ---
+  if (isEditing) {
+    return (
+      <div className="p-4 rounded-xl border-2 border-blue-400 bg-blue-50 shadow-lg animate-in fade-in zoom-in duration-200">
+        <div className="mb-3">
+          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Task Title</label>
+          <input 
+            autoFocus
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            className="w-full p-2 border border-blue-200 rounded text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Fibonacci Size</label>
+          <select 
+            value={editSize}
+            onChange={(e) => setEditSize(Number(e.target.value))}
+            className="w-full p-2 border border-blue-200 rounded text-slate-900 outline-none font-medium"
+          >
+            {[1, 2, 3, 5, 8, 13].map(num => <option key={num} value={num}>{num}</option>)}
+          </select>
+        </div>
+<div className="mb-4">
+  <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Asset Link (Drive/Figma)</label>
+  <input 
+    type="url"
+    value={editUrl}
+    onChange={(e) => setEditUrl(e.target.value)}
+    placeholder="https://..."
+    className="w-full p-2 border border-blue-200 rounded text-slate-900 text-xs outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
+        <div className="flex justify-end gap-2">
+          <button onClick={() => setIsEditing(false)} className="px-3 py-2 text-slate-500 font-bold text-xs hover:bg-slate-200 rounded-lg transition-colors">
+            CANCEL
+          </button>
+          <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all">
+            <Save size={14} /> SAVE CHANGES
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- STANDARD DISPLAY UI ---
   return (
     <div className={`p-4 rounded-xl border transition-all ${getCardStyles()}`}>
       
-      {/* 3. Dependency Alert Banner */}
+      {/* Blocked Alert */}
       {isBlocked && !task.is_completed && (
         <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
           <div className="flex items-center gap-1.5 text-[10px] font-black text-amber-700 uppercase mb-1">
@@ -40,14 +102,14 @@ const TaskCard = ({ task, onDelete, onToggleComplete }: {
         </div>
       )}
 
-      {/* 4. High Impact Badge */}
+      {/* Impact Flame */}
       {!task.is_completed && !isBlocked && projectCount >= 2 && (
         <div className="text-[10px] font-black text-orange-600 uppercase mb-2 flex items-center gap-1">
           🔥 High Impact ({projectCount} Projects)
         </div>
       )}
 
-      {/* 5. Project Tags */}
+      {/* Project Tags */}
       <div className="flex flex-wrap gap-1 mb-3">
         {task.task_project_links?.map((link: any, index: number) => (
           <span 
@@ -61,9 +123,9 @@ const TaskCard = ({ task, onDelete, onToggleComplete }: {
         ))}
       </div>
 
-      {/* 6. Header: Title and Actions */}
+      {/* Header & Main Actions */}
       <div className="flex justify-between items-start mb-1">
-        <div>
+        <div className="flex-1 pr-4">
           <h4 className={`font-semibold leading-tight ${
             task.is_completed ? 'text-green-800 line-through' : isBlocked ? 'text-slate-400' : 'text-slate-800'
           }`}>
@@ -74,28 +136,38 @@ const TaskCard = ({ task, onDelete, onToggleComplete }: {
           </span>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1 items-center">
+          {/* Edit Button */}
+          {!task.is_completed && (
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="text-slate-300 hover:text-blue-500 p-1 transition-colors"
+              title="Edit Task"
+            >
+              <Edit2 size={16} />
+            </button>
+          )}
+          
           <button 
             disabled={isBlocked && !task.is_completed}
             onClick={() => onToggleComplete(task.id, task.is_completed)}
             className={`${
               task.is_completed ? 'text-green-600' : isBlocked ? 'text-slate-200 cursor-not-allowed' : 'text-slate-300 hover:text-green-500'
-            } transition-colors`}
-            title={isBlocked ? "Finish blocking task first" : "Complete"}
+            } p-1 transition-colors`}
           >
             {task.is_completed ? <Undo size={18} /> : <CheckCircle size={18} />}
           </button>
           
           <button 
             onClick={() => onDelete(task.id)} 
-            className="text-slate-300 hover:text-red-500 transition-colors p-1"
+            className="text-slate-300 hover:text-red-500 p-1 transition-colors"
           >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
 
-      {/* 7. Due Date */}
+      {/* Due Date */}
       {!task.is_completed && task.due_date && (
         <div className={`flex items-center gap-1 text-[10px] font-bold uppercase my-3 ${isOverdue ? 'text-red-500' : 'text-slate-400'}`}>
           <Calendar size={12} />
@@ -103,7 +175,7 @@ const TaskCard = ({ task, onDelete, onToggleComplete }: {
         </div>
       )}
       
-      {/* 8. Footer: Assignee and Assets */}
+      {/* Footer */}
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
         <div className="flex items-center gap-2 text-slate-500">
           <User size={14} />
@@ -115,7 +187,7 @@ const TaskCard = ({ task, onDelete, onToggleComplete }: {
             href={task.drive_url} 
             target="_blank" 
             rel="noopener noreferrer" 
-            className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline transition-all"
+            className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline"
           >
             <FileText size={14} /> Asset <ExternalLink size={10} />
           </a>

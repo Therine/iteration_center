@@ -143,7 +143,7 @@ console.log("Tasks received in Form:", tasks);
           </div>
         </div>
 <div className="md:col-span-3">
-  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Depends On (Optional)</label>
+  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Blocked by (Optional)</label>
   <select 
   value={dependsOnId}
   onChange={(e) => setDependsOnId(e.target.value)}

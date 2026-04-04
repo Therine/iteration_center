@@ -118,7 +118,25 @@ const addTask = async (taskData: any) => {
     }
      fetchTasks();
   };
+const updateTask = async (id: string, updatedData: any) => {
+  const finalData = {
+    ...updatedData,
+    drive_url: updatedData.drive_url === "" ? null : updatedData.drive_url
+  };
+  const { error } = await supabase
+    .from('tasks')
+    .update(finalData)
+    .eq('id', id);
 
+  if (!error) {
+    // Refresh the local state to show the changes
+    setTasks((prev) => 
+      prev.map((t: any) => (t.id === id ? { ...t, ...finalData } : t))
+    );
+  } else {
+    console.error("Update failed:", error.message);
+  }
+};
   // 5. SORTING LOGIC (Helper function to keep the UI clean)
   const sortTasks = (a: any, b: any) => {
     if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
@@ -155,7 +173,7 @@ const addTask = async (taskData: any) => {
               .filter((t: any) => t.assignee === "User A")
               .sort(sortTasks)
               .map((t: any) => (
-                <TaskCard key={t.id} task={t} onDelete={deleteTask} onToggleComplete={toggleComplete} />
+                <TaskCard key={t.id} task={t} onDelete={deleteTask} onToggleComplete={toggleComplete} onUpdate={updateTask}/>
               ))}
           </div>
         </section>
@@ -168,7 +186,7 @@ const addTask = async (taskData: any) => {
               .filter((t: any) => t.assignee === "User B")
               .sort(sortTasks)
               .map((t: any) => (
-                <TaskCard key={t.id} task={t} onDelete={deleteTask} onToggleComplete={toggleComplete} />
+                <TaskCard key={t.id} task={t} onDelete={deleteTask} onToggleComplete={toggleComplete} onUpdate={updateTask}/>
               ))}
           </div>
         </section>
