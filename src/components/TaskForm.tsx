@@ -7,23 +7,23 @@ export default function TaskForm({ onAddTask }: { onAddTask: (task: any) => void
   const [title, setTitle] = useState('');
   const [size, setSize] = useState(1);
   const [assignee, setAssignee] = useState('User A');
-  const [driveUrl, setDriveUrl] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [drive_url, setDriveUrl] = useState('');
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title) return;
+  e.preventDefault();
+  if (!title) return;
 
-    // Send the new task data "up" to the main page
-    onAddTask({
-      title,
+  onAddTask({
+    title,
     size: Number(size),
     assignee,
-    //due_date: dueDate,
-    driveUrl: driveUrl || null, // Capture the link!
-    });
+    due_date: dueDate,
+    drive_url: drive_url // Sending it to the parent (page.tsx)
+  });
 
-    // Reset the form
-    setTitle('');
-  };
+  setTitle('');
+  setDriveUrl(''); // Reset the field after adding
+};
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-8">
@@ -66,15 +66,24 @@ export default function TaskForm({ onAddTask }: { onAddTask: (task: any) => void
             <option value="User B">User B</option>
           </select>
         </div>
+        <div>
+  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Due Date</label>
+  <input 
+    type="date" 
+    value={dueDate}
+    onChange={(e) => setDueDate(e.target.value)}
+    className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
 <div className="md:col-span-3">
   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Asset Link (Google Drive / Figma / etc.)</label>
   <input 
-    type="url" 
-    value={driveUrl}
-    onChange={(e) => setDriveUrl(e.target.value)}
-    placeholder="https://docs.google.com/..."
-    className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-  />
+  type="url" 
+  value={drive_url}
+  onChange={(e) => setDriveUrl(e.target.value)} // Fixed the capitalization here!
+  placeholder="https://docs.google.com/..."
+  className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+/>
 </div>
         {/* Submit Button */}
         <div className="md:col-span-3 flex justify-end mt-2">

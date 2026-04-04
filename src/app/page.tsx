@@ -33,25 +33,26 @@ const pointsB = tasks
   .reduce((acc: number, t: any) => acc + Number(t.size), 0);
   // SAVE NEW TASK TO SUPABASE
   const addTask = async (taskData: any) => {
-    console.log("Attempting to add task:", taskData); // Debugging line
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([{
-        title: taskData.title,
-        size: taskData.size,
-        assignee: taskData.assignee,
-        // project_id: 'your-project-uuid' <-- We'll automate this later
-      }])
-      .select();
-    if (error) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert([{
+      title: taskData.title,
+      size: taskData.size,
+      assignee: taskData.assignee,
+      due_date: taskData.due_date,
+      drive_url: taskData.drive_url // This matches your Supabase column name
+    }])
+    .select();
+
+  if (error) {
     console.error("Supabase Error:", error.message);
     return;
   }
-    if (data) {
-    console.log("Success! Task saved:", data[0]);
-    setTasks((prevTasks) => [data[0], ...prevTasks]);
+
+  if (data) {
+    setTasks((prev) => [data[0], ...prev]);
   }
-  };
+};
 
   if (loading) return <div className="p-20 text-center font-bold">Loading Engine...</div>;
 
@@ -60,7 +61,7 @@ const pointsB = tasks
     <main className="min-h-screen bg-slate-50 p-8 max-w-5xl mx-auto">
       <header className="mb-8 flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Iteration Center</h1>
+          <h1 className="text-3xl font-bold text-slate-900">E-CRM Iteration Center</h1>
           <p className="text-slate-500 text-sm">2-Person High Velocity Engine</p>
         </div>
         <div className="flex gap-4">
