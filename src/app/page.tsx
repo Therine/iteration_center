@@ -53,7 +53,19 @@ const pointsB = tasks
     setTasks((prev) => [data[0], ...prev]);
   }
 };
+const deleteTask = async (id: number) => {
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', id);
 
+  if (!error) {
+    // This line updates the UI immediately without a refresh
+    setTasks(tasks.filter((t: any) => t.id !== id));
+  } else {
+    console.error("Delete failed:", error.message);
+  }
+};
   if (loading) return <div className="p-20 text-center font-bold">Loading Engine...</div>;
 
   // ... rest of your return() code remains the same
@@ -74,17 +86,27 @@ const pointsB = tasks
       <TaskForm onAddTask={addTask} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* User A Column */}
         <section>
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">User A Path</h2>
           <div className="space-y-4">
-            {tasks.filter(t => t.assignee === "User A").map(t => <TaskCard key={t.id} task={t} />)}
+            {tasks
+              .filter((t: any) => t.assignee === "User A")
+              .map((t: any) => (
+                <TaskCard key={t.id} task={t} onDelete={deleteTask} />
+              ))}
           </div>
         </section>
 
+        {/* User B Column */}
         <section>
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">User B Path</h2>
           <div className="space-y-4">
-            {tasks.filter(t => t.assignee === "User B").map(t => <TaskCard key={t.id} task={t} />)}
+            {tasks
+              .filter((t: any) => t.assignee === "User B")
+              .map((t: any) => (
+                <TaskCard key={t.id} task={t} onDelete={deleteTask} />
+              ))}
           </div>
         </section>
       </div>
