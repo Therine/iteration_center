@@ -141,6 +141,19 @@ const updateTask = async (id: string, updatedData: any) => {
     console.error("Update failed:", error.message);
   }
 };
+const updateProject = async (id: string, updatedData: any) => {
+  const { error } = await supabase
+    .from('projects')
+    .update(updatedData)
+    .eq('id', id);
+
+  if (error) {
+    console.error("Error updating project:", error.message);
+    return;
+  }
+  fetchProjects()
+};
+
   // 5. SORTING LOGIC (Helper function to keep the UI clean)
   const sortTasks = (a: any, b: any) => {
     if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
@@ -187,7 +200,7 @@ const addProject = async (name: string) => {
       <Zap className="text-amber-500" size={20} fill="currentColor" />
       <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Strategic Velocity</h2>
     </div>
-    <ProjectDashboard projects={projects} tasks={tasks} />
+    <ProjectDashboard projects={projects} tasks={tasks} onUpdateProject={updateProject}/>
   </section>
       {/* Passing projects to the form once */}
       <TaskForm onAddTask={addTask} projects={projects} tasks={tasks} />
