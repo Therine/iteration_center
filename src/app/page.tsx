@@ -3,31 +3,48 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Zap } from 'lucide-react';
+import ICAL from 'ical.js';
 import CapacityMeter from '@/components/CapacityMeter';
 import TaskCard from '@/components/TaskCard';
 import TaskForm from '@/components/TaskForm';
 import ProjectForm from '@/components/ProjectForm';
 import ProjectDashboard from '@/components/ProjectDashboard';
 
+
+
 export default function Home() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
-  
   // 1. ADD THE TOGGLE STATE
   const [viewMode, setViewMode] = useState<'all' | 'iteration'>('iteration');
+  const [showCompleted, setShowCompleted] = useState(false);
+ // Inside your Home component
+const [activeIteration, setActiveIteration] = useState({
+  start: new Date('2026-04-08T00:00:00'), // Adding the T00:00:00 ensures local timezone consistency
+  end: new Date('2026-04-21T23:59:59'),
+  name: 'FY26 PI3.5'
+});
+ // Dynamic Date Logic - strictly using the state
+const ITERATION_START = activeIteration.start;
+const ITERATION_END = activeIteration.end;
+const ITERATION_NAME = activeIteration.name;
 
-  // 2. DEFINE THE DATES
-  const ITERATION_START = new Date('2026-04-08');
-  const ITERATION_END = new Date('2026-04-21');
 
-  // 3. CREATE THE FILTERED LIST
   const displayTasks = tasks.filter(task => {
-    if (viewMode === 'all') return true;
+  // 1. First, handle the Iteration vs All view
+  if (viewMode === 'iteration') {
     if (!task.due_date) return false;
     const dueDate = new Date(task.due_date);
-    return dueDate >= ITERATION_START && dueDate <= ITERATION_END;
-  });
+    if (dueDate < ITERATION_START || dueDate >= ITERATION_END) return false;
+  }
+
+  // 2. NEW: Handle the Completed Toggle
+  // If showCompleted is false, we filter OUT completed tasks
+  if (!showCompleted && task.is_completed) return false;
+
+  return true;
+});
 
 
 
@@ -62,14 +79,34 @@ export default function Home() {
     setLoading(false);
   }
 
-  useEffect(() => {
-    fetchProjects();
-    fetchTasks();
-  }, []);
+useEffect(() => {
+  fetchTasks();
+  fetchProjects();
+
+  const syncCalendar = async () => {
+    const data = await fetchCalendarEvents();
+    
+    // Check if data is valid here BEFORE calling the helper
+    if (data && Array.isArray(data)) {
+      const current = getCurrentIteration(data);
+      if (current) {
+        setActiveIteration({
+          start: new Date(current.start_time),
+          end: new Date(current.end_time),
+          name: current.event_title
+        });
+      }
+    } else {
+      console.error("Fetch returned something other than an array:", data);
+    }
+  };
+
+  syncCalendar();
+}, []);
 
   // 3. HELPER LOGIC
   const getMemberPoints = (memberId: string) => {
-  return tasks
+  return displayTasks
     .filter(t => t.assignee === memberId && !t.is_completed)
     .reduce((sum, t) => sum + (Number(t.size) || 0), 0);
 };
@@ -184,17 +221,21 @@ export default function Home() {
         </div>
         <ProjectForm onAddProject={addProject} />
         <div className="mb-8 p-6 bg-slate-900 rounded-2xl text-white shadow-xl border border-slate-700">
-  <div className="flex justify-between items-center">
-    <div>
-      <h1 className="text-3xl font-black tracking-tight">FY26 PI3.5 ITERATION</h1>
-      <p className="text-slate-400 font-medium">April 8 — April 21, 2026</p>
-    </div>
-    <div className="text-right">
-      <span className="text-[10px] font-black bg-blue-600 px-3 py-1 rounded-full uppercase">
-        Active Period
-      </span>
-    </div>
+  <header className="...">
+{/* PI DISPLAY BOX */}
+<div className="mb-8 p-6 bg-slate-900 rounded-2xl shadow-xl border border-slate-700">
+  <div>
+    <h1 className="text-3xl font-black text-white tracking-tight">
+      {activeIteration.name}
+    </h1>
+    <p className="text-slate-400 font-medium italic">
+  {new Date(activeIteration.start).toLocaleDateString('en-US', { timeZone: 'UTC' })} — {new Date(new Date(activeIteration.end).getTime() - 86400000).toLocaleDateString('en-US', { timeZone: 'UTC' })}
+</p>
+{/* In your header rendering */}
+
   </div>
+</div>
+</header>
 </div>
       </header>
 
@@ -206,23 +247,38 @@ export default function Home() {
         </div>
         <ProjectDashboard projects={projects} tasks={tasks} onUpdateProject={updateProject} />
       </section>
-{/* VIEW TOGGLE */}
-<div className="flex bg-slate-200 p-1 rounded-xl w-fit mb-6">
+
+
+{/* VIEW & COMPLETED TOGGLES */}
+<div className="flex items-center gap-4 mb-6">
+  <div className="flex bg-slate-200 p-1 rounded-xl w-fit">
+    <button
+      onClick={() => setViewMode('iteration')}
+      className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
+        viewMode === 'iteration' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
+      }`}
+    >
+      CURRENT ITERATION
+    </button>
+    <button
+      onClick={() => setViewMode('all')}
+      className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
+        viewMode === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
+      }`}
+    >
+      ALL TASKS
+    </button>
+  </div>
+
   <button
-    onClick={() => setViewMode('iteration')}
-    className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
-      viewMode === 'iteration' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
+    onClick={() => setShowCompleted(!showCompleted)}
+    className={`px-4 py-2 rounded-xl text-xs font-black border transition-all ${
+      showCompleted 
+        ? 'bg-green-100 border-green-200 text-green-700' 
+        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
     }`}
   >
-    CURRENT ITERATION
-  </button>
-  <button
-    onClick={() => setViewMode('all')}
-    className={`px-4 py-1.5 rounded-lg text-xs font-black transition-all ${
-      viewMode === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-    }`}
-  >
-    ALL TASKS
+    {showCompleted ? 'Showing Completed ✓' : 'Hide Completed'}
   </button>
 </div>
       {/* CAPACITY OVERVIEW */}
@@ -283,3 +339,57 @@ export default function Home() {
     </main>
   );
 }
+
+const fetchCalendarEvents = async () => {
+  // 1. Your Public ICS URL
+  const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
+  
+  // 2. Using a free proxy to bypass CORS
+  const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(ICS_URL);
+
+  try {
+    const response = await fetch(PROXY_URL);
+    const text = await response.text();
+    
+    // 3. Parse the ICS data
+    const jcalData = ICAL.parse(text);
+    const vcalendar = new ICAL.Component(jcalData);
+    const vevents = vcalendar.getAllSubcomponents('vevent');
+
+    return vevents.map(vevent => {
+      const event = new ICAL.Event(vevent);
+      return {
+        event_title: event.summary,
+        start_time: event.startDate.toJSDate(),
+        end_time: event.endDate.toJSDate()
+      };
+    });
+  } catch (error) {
+    console.error("ICS Fetch Error:", error);
+    return [];
+  }
+};
+// Helper to find the "active" iteration from the calendar events
+const getCurrentIteration = (calendarEvents: any[]) => {
+  // 1. SAFETY CHECK: If it's not an array, stop here to avoid the crash
+  if (!Array.isArray(calendarEvents)) {
+    console.error("Calendar data is not an array:", calendarEvents);
+    return null;
+  }
+
+  const today = new Date();
+  
+  const activeEvent = calendarEvents.find(event => {
+  if (!event.start_time || !event.end_time) return false;
+  
+  // Force the dates to be treated as UTC to match the Calendar's source
+  const start = new Date(event.start_time);
+  const end = new Date(event.end_time);
+  const today = new Date();
+
+  // We use the 'UTC' methods to avoid the Chicago offset
+  return today >= start && today < end && event.event_title.includes("PI");
+});
+
+  return activeEvent || null;
+};
