@@ -94,13 +94,44 @@ export default function Home() {
   };
 
   const updateTask = async (id: string, updatedData: any) => {
-    const finalData = {
-      ...updatedData,
-      drive_url: updatedData.drive_url === "" ? null : updatedData.drive_url
-    };
-    const { error } = await supabase.from('tasks').update(finalData).eq('id', id);
-    if (!error) fetchTasks();
+  // 1. Separate the project IDs from the rest of the task data
+  const { projectIds, ...taskFields } = updatedData;
+
+  const finalData = {
+    ...taskFields,
+    drive_url: taskFields.drive_url === "" ? null : taskFields.drive_url
   };
+
+  // 2. Update the main Task record
+  const { error: taskError } = await supabase
+    .from('tasks')
+    .update(finalData)
+    .eq('id', id);
+
+  if (taskError) {
+    console.error("Update failed:", taskError.message);
+    return;
+  }
+
+  // 3. Sync Project Tags (The many-to-many part)
+  if (projectIds) {
+    // Delete existing links for this task
+    await supabase.from('task_project_links').delete().eq('task_id', id);
+    
+    // Insert new links
+    const newLinks = projectIds.map((pId: string) => ({
+      task_id: id,
+      project_id: pId
+    }));
+    
+    if (newLinks.length > 0) {
+      await supabase.from('task_project_links').insert(newLinks);
+    }
+  }
+
+  // 4. Refresh everything
+  fetchTasks();
+};
 
   const toggleComplete = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase
@@ -197,6 +228,7 @@ export default function Home() {
                     onToggleComplete={toggleComplete}
                     onUpdate={updateTask}
                     teamMembers={TEAM_MEMBERS}
+                    allProjects={projects}
                   />
                 ))}
             </div>

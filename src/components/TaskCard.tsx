@@ -4,18 +4,22 @@ import {
   CheckCircle, Undo, AlertCircle, Edit2, X, Save 
 } from 'lucide-react';
 
-const TaskCard = ({ task, onDelete, onToggleComplete, onUpdate, teamMembers }: { 
+const TaskCard = ({ task, onDelete, onToggleComplete, onUpdate, teamMembers, allProjects }: { 
   task: any, 
   onDelete: (id: string) => void,
   onToggleComplete: (id: string, currentStatus: boolean) => void,
   onUpdate: (id: string, data: any) => void,
-  teamMembers: any[]
+  teamMembers: any[],
+  allProjects: any[]
 }) => {
   // 1. EDIT STATE
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editSize, setEditSize] = useState(task.size);
   const [editUrl, setEditUrl] = useState(task.drive_url || '');
+  const [editProjectIds, setEditProjectIds] = useState<string[]>(
+  task.task_project_links?.map((l: any) => l.projects?.id) || []
+);
   // 2. DERIVED STATE
   const isOverdue = !task.is_completed && task.due_date && new Date(task.due_date) < new Date();
   const projectCount = task.task_project_links?.length || 0;
@@ -30,7 +34,8 @@ const handleSave = () => {
   onUpdate(task.id, { 
     title: editTitle, 
     size: Number(editSize),
-    drive_url: editUrl // Now sending the new URL
+    drive_url: editUrl, // Now sending the new URL
+    projectIds: editProjectIds
   });
   setIsEditing(false);
 };
@@ -74,6 +79,34 @@ const handleSave = () => {
     placeholder="https://..."
     className="w-full p-2 border border-blue-200 rounded text-slate-900 text-xs outline-none focus:ring-2 focus:ring-blue-500"
   />
+</div>
+<div className="mb-4">
+  <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Project Tags</label>
+  <div className="flex flex-wrap gap-1.5">
+    {allProjects.map((proj) => {
+      const isSelected = editProjectIds.includes(proj.id);
+      return (
+        <button
+          key={proj.id}
+          type="button"
+          onClick={() => {
+            setEditProjectIds(prev => 
+              isSelected 
+                ? prev.filter(id => id !== proj.id) 
+                : [...prev, proj.id]
+            );
+          }}
+          className={`text-[9px] px-2 py-1 rounded-full font-bold border transition-all ${
+            isSelected 
+              ? 'bg-blue-600 border-blue-600 text-white shadow-sm' 
+              : 'bg-white border-slate-200 text-slate-400 hover:border-blue-300'
+          }`}
+        >
+          {proj.name}
+        </button>
+      );
+    })}
+  </div>
 </div>
         <div className="flex justify-end gap-2">
           <button onClick={() => setIsEditing(false)} className="px-3 py-2 text-slate-500 font-bold text-xs hover:bg-slate-200 rounded-lg transition-colors">
