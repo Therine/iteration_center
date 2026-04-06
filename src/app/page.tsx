@@ -289,7 +289,7 @@ if (projectIds) {
 
       {/* TASK CREATION */}
       <section className="mb-12">
-        <TaskForm onAddTask={addTask} projects={projects} tasks={tasks} teamMembers={TEAM_MEMBERS} />
+        <TaskForm onAddTask={addTask} projects={projects} tasks={tasks} teamMembers={TEAM_MEMBERS.map(m => m.name)} />
       </section>
 
       {/* DYNAMIC TEAM COLUMNS */}
