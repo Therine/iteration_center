@@ -407,3 +407,14 @@ const getCurrentIteration = (calendarEvents: any[]) => {
 
   return activeEvent || null;
 };
+const channel = supabase
+  .channel('schema-db-changes')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'tasks' },
+    (payload) => {
+      // Refresh your tasks list here when a change occurs
+      fetchTasks(); 
+    }
+  )
+  .subscribe();
