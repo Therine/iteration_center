@@ -77,7 +77,7 @@ const handleSave = () => {
   <label className="block text-[10px] font-black text-blue-600 uppercase mb-1">Reassign Task</label>
 <select
   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-  >
+  
   value={task.assignee || ''}
   onChange={(e) => onUpdate(task.id, { assignee: e.target.value })}
 >
