@@ -369,17 +369,12 @@ if (projectIds) {
 }
 
 const fetchCalendarEvents = async () => {
-  // 1. Your Public ICS URL
   const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
-  
-  // 2. Using a free proxy to bypass CORS
   const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(ICS_URL);
 
   try {
-    const response = await fetch(PROXY_URL);
+    const response = await fetch(PROXY_URL, { cache: 'no-store' }); // Force fresh data
     const text = await response.text();
-    
-    // 3. Parse the ICS data
     const jcalData = ICAL.parse(text);
     const vcalendar = new ICAL.Component(jcalData);
     const vevents = vcalendar.getAllSubcomponents('vevent');
@@ -397,21 +392,26 @@ const fetchCalendarEvents = async () => {
     return [];
   }
 };
-// Helper to find the "active" iteration from the calendar events
+
 const getCurrentIteration = (calendarEvents: any[]) => {
-  if (!Array.isArray(calendarEvents)) return null;
+  if (!Array.isArray(calendarEvents) || calendarEvents.length === 0) return null;
 
   const today = new Date();
   
-  // 1. Find the event where TODAY falls between Start and End
-  const activeEvent = calendarEvents.find(event => {
+  // Sort events so we check the earliest ones first
+  const piEvents = calendarEvents
+    .filter(e => e.event_title.toUpperCase().includes("PI"))
+    .sort((a, b) => a.start_time.getTime() - b.start_time.getTime());
+
+  console.log("All PI Events found:", piEvents); // Check your browser console!
+
+  // Find the one where today is between start and end
+  const current = piEvents.find(event => {
     const start = new Date(event.start_time);
     const end = new Date(event.end_time);
-    
-    // We check if today is >= start AND today is <= end
-    // Removing the space requirement from the title check
-    return today >= start && today <= end && event.event_title.includes("PI");
+    // Expand the window slightly to handle timezone offsets
+    return today >= start && today < end;
   });
 
-  return activeEvent || null;
+  return current || null;
 };
