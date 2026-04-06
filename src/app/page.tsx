@@ -424,10 +424,13 @@ const getCurrentIteration = (calendarEvents: any[]) => {
   );
 
   // Match where today is >= start AND today < end 
-  // (Standard ICS logic: End date is the morning AFTER the event finishes)
-  const active = piEvents.find(event => {
-    return today >= event.start_date && today < event.end_date;
-  });
-
+ 
+const active = piEvents.find(event => {
+  const s = new Date(event.start_date).setHours(0,0,0,0);
+  const e = new Date(event.end_date).setHours(0,0,0,0);
+  const t = new Date().setHours(0,0,0,0);
+  
+  return t >= s && t < e;
+});
   return active || null;
 };
