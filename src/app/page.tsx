@@ -82,7 +82,17 @@ const ITERATION_NAME = activeIteration.name;
 useEffect(() => {
   fetchTasks();
   fetchProjects();
-
+  const channel = supabase
+  .channel('schema-db-changes')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'tasks' },
+    (payload) => {
+      // Refresh your tasks list here when a change occurs
+      fetchTasks(); 
+    }
+  )
+  .subscribe();
   const syncCalendar = async () => {
     const data = await fetchCalendarEvents();
     
@@ -318,7 +328,7 @@ if (projectIds) {
         onDelete={deleteTask} 
         onToggleComplete={toggleComplete}
         onUpdate={updateTask}
-        teamMembers={TEAM_MEMBERS}
+        teamMembers={TEAM_MEMBERS.map(m => m.name)} 
         allProjects={projects}
         allTasks={tasks} />
     ))
@@ -339,7 +349,7 @@ if (projectIds) {
         onDelete={deleteTask} 
         onToggleComplete={toggleComplete}
         onUpdate={updateTask}
-        teamMembers={TEAM_MEMBERS}
+        teamMembers={TEAM_MEMBERS.map(m => m.name)} 
         allProjects={projects}
         allTasks={tasks} 
         // ... rest of your props
@@ -407,14 +417,3 @@ const getCurrentIteration = (calendarEvents: any[]) => {
 
   return activeEvent || null;
 };
-const channel = supabase
-  .channel('schema-db-changes')
-  .on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: 'tasks' },
-    (payload) => {
-      // Refresh your tasks list here when a change occurs
-      fetchTasks(); 
-    }
-  )
-  .subscribe();
