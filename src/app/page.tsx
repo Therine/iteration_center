@@ -9,7 +9,7 @@ import TaskForm from '@/components/TaskForm';
 import ProjectForm from '@/components/ProjectForm';
 import ProjectDashboard from '@/components/ProjectDashboard';
 import IterationForm from '@/components/IterationForm';
-
+import Login from '@/components/Login';
 
 const fetchCalendarEvents = async () => {
 const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
@@ -73,6 +73,7 @@ export default function Home() {
   const [projects, setProjects] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'all' | 'iteration'>('iteration');
   const [showCompleted, setShowCompleted] = useState(false);
+  const [session, setSession] = useState<any>(null);
   const [activeIteration, setActiveIteration] = useState({
     start: new Date(2026, 2, 25),
     end: new Date(2026, 3, 7),
@@ -125,10 +126,19 @@ export default function Home() {
   // --- EFFECTS ---
 
   useEffect(() => {
+    // 1. Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // 2. Listen for auth changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    
     fetchTasks();
     fetchProjects();
     fetchIteration();
-
     const channel = supabase
       .channel('schema-db-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchTasks())
@@ -136,9 +146,14 @@ export default function Home() {
 
     return () => {
       supabase.removeChannel(channel);
+      subscription.unsubscribe();
     };
-  }, []);
 
+
+  }, []);
+if (!session) {
+    return <Login />;
+  }
   // --- LOGIC & HANDLERS ---
 
   const displayTasks = tasks.filter(task => {
