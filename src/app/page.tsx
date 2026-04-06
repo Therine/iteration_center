@@ -39,10 +39,22 @@ const fetchCalendarEvents = async () => {
 
 const getCurrentIteration = (calendarEvents: any[]) => {
   if (!calendarEvents || calendarEvents.length === 0) return null;
+  
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const piEvents = calendarEvents.filter(e => true);
-  return piEvents.find(event => today >= event.start_date && today < event.end_date) || null;
+
+  // 1. Filter for PI events (Case Insensitive)
+  const piEvents = calendarEvents
+    .filter(e => e.event_title.toUpperCase().includes("PI"))
+    .sort((a, b) => a.start_date.getTime() - b.start_date.getTime());
+
+  // 2. Try to find the event covering TODAY
+  const active = piEvents.find(event => today >= event.start_date && today < event.end_date);
+  if (active) return active;
+
+  // 3. FALLBACK: If nothing is active today, find the first event that starts in the FUTURE
+  const future = piEvents.find(event => event.start_date > today);
+  return future || piEvents[piEvents.length - 1]; // Return future or the last known PI
 };
 
 export default function Home() {
@@ -254,30 +266,25 @@ if (projectIds) {
     <main className="max-w-7xl mx-auto px-6 py-12 bg-slate-50 min-h-screen">
       
       {/* HEADER SECTION */}
-      <header className="mb-12 flex justify-between items-end border-b border-slate-200 pb-8">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">E-CRM ITERATION</h1>
-          <p className="text-slate-500 font-medium">U of M Strategic Velocity Board</p>
-        </div>
-        <ProjectForm onAddProject={addProject} />
-        <div className="mb-8 p-6 bg-slate-900 rounded-2xl text-white shadow-xl border border-slate-700">
-  <header className="...">
-{/* PI DISPLAY BOX */}
-<div className="mb-8 p-6 bg-slate-900 rounded-2xl shadow-xl border border-slate-700">
+      {/* Replace your current Header Section with this cleaned up version */}
+<header className="mb-12 flex justify-between items-start border-b border-slate-200 pb-8">
   <div>
-    <h1 className="text-3xl font-black text-white tracking-tight">
-      {activeIteration.name}
-    </h1>
-    <p className="text-slate-400 font-medium italic">
-  {new Date(activeIteration.start).toLocaleDateString('en-US', { timeZone: 'UTC' })} — {new Date(new Date(activeIteration.end).getTime() - 86400000).toLocaleDateString('en-US', { timeZone: 'UTC' })}
-</p>
-{/* In your header rendering */}
-
+    <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">E-CRM Iteration</h1>
+    <p className="text-slate-500 font-medium">U of M Strategic Velocity Board</p>
+    
+    {/* PI DISPLAY BOX - Moved here for visibility */}
+    <div className="mt-4 p-4 bg-blue-600 rounded-xl text-white shadow-lg inline-block">
+      <h2 className="text-xl font-bold leading-none">{activeIteration.name}</h2>
+      <p className="text-blue-100 text-xs font-mono mt-1">
+        {activeIteration.start.toLocaleDateString()} — {new Date(activeIteration.end.getTime() - 86400000).toLocaleDateString()}
+      </p>
+    </div>
   </div>
-</div>
+  
+  <div className="flex flex-col items-end gap-2">
+    <ProjectForm onAddProject={addProject} />
+  </div>
 </header>
-</div>
-      </header>
 
       {/* STRATEGIC DASHBOARD */}
       <section className="mb-12">
