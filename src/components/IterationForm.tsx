@@ -1,3 +1,6 @@
+'use client'; // Critical for any file using useState
+
+import React, { useState } from 'react';
 export default function IterationForm({ current, onUpdate }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState(current);
