@@ -288,6 +288,12 @@ if (!session) {
         <div className="flex flex-col items-end gap-2">
           <ProjectForm onAddProject={addProject} />
         </div>
+        <button 
+  onClick={() => supabase.auth.signOut()}
+  className="text-blue-200 hover:text-white text-[10px] font-bold uppercase mt-2 ml-4 underline"
+>
+  Sign Out
+</button>
       </header>
 
 
