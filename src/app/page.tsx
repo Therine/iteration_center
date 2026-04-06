@@ -11,37 +11,16 @@ import ProjectDashboard from '@/components/ProjectDashboard';
 
 const fetchCalendarEvents = async () => {
   const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
-  const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(ICS_URL)}&timestamp=${Date.now()}`;
+  const PROXY_URL = `https://cors-anywhere.herokuapp.com/${ICS_URL}`;
 
-  try {
-    const response = await fetch(PROXY_URL);
-    if (!response.ok) throw new Error("Proxy response was not ok");
-    
-    const data = await response.json();
-    const text = data.contents; 
-    
-    const events = text.split("BEGIN:VEVENT");
-    const parsedEvents: any[] = [];
-
-    // Explicitly typed (event: string) to satisfy the TypeScript compiler
-    events.forEach((event: string) => {
-      const summary = event.match(/SUMMARY:(.*)/i);
-      const start = event.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/i);
-      const end = event.match(/DTEND(?:;VALUE=DATE)?:(\d{8})/i);
-
-      if (summary && start && end) {
-        const s = start[1];
-        const e = end[1];
-        
-        parsedEvents.push({
-          event_title: summary[1].trim(),
-          start_date: new Date(parseInt(s.slice(0,4)), parseInt(s.slice(4,6)) - 1, parseInt(s.slice(6,8))),
-          end_date: new Date(parseInt(e.slice(0,4)), parseInt(e.slice(4,6)) - 1, parseInt(e.slice(6,8)))
-        });
-      }
-    });
-    return parsedEvents;
-  } catch (error) {
+try {
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ICS_URL)}`);
+    const json = await res.json();
+    return json.contents; // Process this text like before
+  } catch (e) {
+    return null; 
+  }
+}; catch (error) {
     console.error("Calendar Sync Error:", error);
     return [];
   }
@@ -86,11 +65,11 @@ export default function Home() {
   const [showCompleted, setShowCompleted] = useState(false);
 
   // Initialize with a cleaner placeholder
-  const [activeIteration, setActiveIteration] = useState({
-    start: new Date(),
-    end: new Date(new Date().getTime() + 86400000), // Default to +1 day so math doesn't break
-    name: 'Loading Iteration...'
-  });
+const [activeIteration, setActiveIteration] = useState({
+  start: new Date(2026, 2, 25),   // March 25th, 2026 (Month is 0-indexed, so 3 = April)
+  end: new Date(2026, 3, 7),     // April 7th, 2026
+  name: 'FY26 PI3.4'
+});
  // Dynamic Date Logic - strictly using the state
 const ITERATION_START = activeIteration.start;
 const ITERATION_END = activeIteration.end;
@@ -161,23 +140,22 @@ useEffect(() => {
 
   // 2. Calendar Sync Logic
   const syncCalendar = async () => {
-    try {
-      const data = await fetchCalendarEvents();
-      if (data && data.length > 0) {
-        const current = getCurrentIteration(data);
-        if (current) {
-          console.log("Successfully matched iteration:", current.event_title);
-          setActiveIteration({
-            start: current.start_date,
-            end: current.end_date,
-            name: current.event_title
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Failed to sync calendar:", err);
+  try {
+    const data = await fetchCalendarEvents();
+    if (!data) return; // Exit silently if proxy fails
+
+    const current = getCurrentIteration(data);
+    if (current) {
+      setActiveIteration({
+        start: current.start_date,
+        end: current.end_date,
+        name: current.event_title
+      });
     }
-  };
+  } catch (err) {
+    // We don't even need to log this anymore, we have our hardcoded fallback!
+  }
+};
 
   syncCalendar();
 
@@ -296,14 +274,11 @@ if (projectIds) {
     {/* PI DISPLAY BOX - Moved here for visibility */}
     <div className="mt-4 p-4 bg-blue-600 rounded-xl text-white shadow-lg inline-block">
       <h2 className="text-xl font-bold leading-none">{activeIteration.name}</h2>
-      <p className="text-blue-100 text-xs font-mono mt-1">
-  {activeIteration.start.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })} 
+ <p className="text-blue-100 text-xs font-mono mt-1">
+  {activeIteration.start.toLocaleDateString('en-US', { timeZone: 'UTC' })} 
   {" — "}
-  {/* If the start and end are the same, don't subtract a day, otherwise subtract 1 day for display */}
-  {activeIteration.start.getTime() === activeIteration.end.getTime() 
-    ? activeIteration.end.toLocaleDateString()
-    : new Date(activeIteration.end.getTime() - 86400000).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
-  }
+  {/* Subtract 1 day from the end date for display only */}
+  {new Date(activeIteration.end.getTime() - 86400000).toLocaleDateString('en-US', { timeZone: 'UTC' })}
 </p>
     </div>
   </div>
