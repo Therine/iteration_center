@@ -39,8 +39,12 @@ useEffect(() => {
   const blockingTasks = dependencies.filter((d: any) => d.depends_on && !d.depends_on.is_completed);
   const isBlocked = blockingTasks.length > 0;
   const member = teamMembers?.find(m => m.id === task.assignee);
-  const displayName = member ? member.name : task.assignee;
-
+  const memberMap: Record<string, string> = {
+  "user_a": "Carrie Otto",
+  "user_b": "Katherine DeLong",
+  "user_c": "Minah Elsway",
+  "user_d": "Rachel Saen"
+};
   // 3. ACTIONS
 const handleSave = () => {
   onUpdate(task.id, { 
@@ -274,7 +278,9 @@ const handleSave = () => {
         <div className="flex items-center gap-2 text-slate-500">
           <User size={14} />
           
-          <span className="text-xs font-medium">{displayName}</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+  {memberMap[task.assignee] || task.assignee || "Unassigned"}
+</span>
         </div>
 
 
