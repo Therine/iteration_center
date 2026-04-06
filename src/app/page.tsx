@@ -297,10 +297,14 @@ if (projectIds) {
         </div>
       </section>
 
-      {/* TASK CREATION */}
-      <section className="mb-12">
-        <TaskForm onAddTask={addTask} projects={projects} tasks={tasks} teamMembers={TEAM_MEMBERS.map(m => m.name)} />
-      </section>
+<section className="mb-12">
+  <TaskForm 
+    onAddTask={addTask} 
+    projects={projects} 
+    tasks={tasks} 
+    teamMembers={TEAM_MEMBERS.map(m => m.name)} 
+  />
+</section>
 
       {/* DYNAMIC TEAM COLUMNS */}
       <section className="flex gap-6 overflow-x-auto pb-10">
