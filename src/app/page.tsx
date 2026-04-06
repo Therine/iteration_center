@@ -18,11 +18,10 @@ export default function Home() {
   // 1. ADD THE TOGGLE STATE
   const [viewMode, setViewMode] = useState<'all' | 'iteration'>('iteration');
   const [showCompleted, setShowCompleted] = useState(false);
- // Inside your Home component
-const [activeIteration, setActiveIteration] = useState({
-  start: new Date('2026-04-08T00:00:00'), // Adding the T00:00:00 ensures local timezone consistency
-  end: new Date('2026-04-21T23:59:59'),
-  name: 'FY26 PI3.5'
+  const [activeIteration, setActiveIteration] = useState({
+  start: new Date(),
+  end: new Date(),
+  name: 'Syncing Iteration...'
 });
  // Dynamic Date Logic - strictly using the state
 const ITERATION_START = activeIteration.start;
@@ -81,37 +80,43 @@ const ITERATION_NAME = activeIteration.name;
 useEffect(() => {
   fetchTasks();
   fetchProjects();
+
+  // 1. Realtime Subscription
   const channel = supabase
-  .channel('schema-db-changes')
-  .on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: 'tasks' },
-    (payload) => {
-      // Refresh your tasks list here when a change occurs
-      fetchTasks(); 
-    }
-  )
-  .subscribe();
+    .channel('schema-db-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tasks' },
+      () => fetchTasks() 
+    )
+    .subscribe();
+
+  // 2. Calendar Sync Logic
   const syncCalendar = async () => {
-  const data = await fetchCalendarEvents();
-  if (data && data.length > 0) {
-    const current = getCurrentIteration(data);
-    if (current) {
-      // Add this console log to see if PI3.4 is being found
-      console.log("Setting Active Iteration to:", current.event_title);
-      
-      setActiveIteration({
-        start: current.start_time,
-        end: current.end_time,
-        name: current.event_title
-      });
+    try {
+      const data = await fetchCalendarEvents();
+      if (data && data.length > 0) {
+        const current = getCurrentIteration(data);
+        if (current) {
+          console.log("Successfully matched iteration:", current.event_title);
+          setActiveIteration({
+            start: current.start_date,
+            end: current.end_date,
+            name: current.event_title
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to sync calendar:", err);
     }
-  }
-};
-  
+  };
 
   syncCalendar();
-}, []);
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []); // Empty dependency array ensures this runs once on mount
 
   // 3. HELPER LOGIC
   const getMemberPoints = (memberId: string) => {
