@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Zap } from 'lucide-react';
-import ICAL from 'ical.js';
 import CapacityMeter from '@/components/CapacityMeter';
 import TaskCard from '@/components/TaskCard';
 import TaskForm from '@/components/TaskForm';
@@ -373,45 +372,52 @@ const fetchCalendarEvents = async () => {
   const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(ICS_URL);
 
   try {
-    const response = await fetch(PROXY_URL, { cache: 'no-store' }); // Force fresh data
+    const response = await fetch(PROXY_URL, { cache: 'no-store' });
     const text = await response.text();
-    const jcalData = ICAL.parse(text);
-    const vcalendar = new ICAL.Component(jcalData);
-    const vevents = vcalendar.getAllSubcomponents('vevent');
+    
+    // Split the ICS file into individual events
+    const events = text.split("BEGIN:VEVENT");
+    const parsedEvents = [];
 
-    return vevents.map(vevent => {
-      const event = new ICAL.Event(vevent);
-      return {
-        event_title: event.summary,
-        start_time: event.startDate.toJSDate(),
-        end_time: event.endDate.toJSDate()
-      };
-    });
+    for (const event of events) {
+      const titleMatch = event.match(/SUMMARY:(.*)/);
+      const startMatch = event.match(/DTSTART;VALUE=DATE:(\d{8})/);
+      const endMatch = event.match(/DTEND;VALUE=DATE:(\d{8})/);
+
+      if (titleMatch && startMatch && endMatch) {
+        const rawStart = startMatch[1]; // YYYYMMDD
+        const rawEnd = endMatch[1];     // YYYYMMDD
+
+        parsedEvents.push({
+          event_title: titleMatch[1].trim(),
+          // Format YYYY-MM-DD for reliable parsing
+          start_time: new Date(`${rawStart.slice(0,4)}-${rawStart.slice(4,6)}-${rawStart.slice(6,8)}T00:00:00`),
+          end_time: new Date(`${rawEnd.slice(0,4)}-${rawEnd.slice(4,6)}-${rawEnd.slice(6,8)}T23:59:59`)
+        });
+      }
+    }
+    return parsedEvents;
   } catch (error) {
-    console.error("ICS Fetch Error:", error);
+    console.error("Calendar Fetch Error:", error);
     return [];
   }
 };
 
 const getCurrentIteration = (calendarEvents: any[]) => {
-  if (!Array.isArray(calendarEvents) || calendarEvents.length === 0) return null;
+  if (!calendarEvents || calendarEvents.length === 0) return null;
 
   const today = new Date();
-  
-  // Sort events so we check the earliest ones first
-  const piEvents = calendarEvents
-    .filter(e => e.event_title.toUpperCase().includes("PI"))
-    .sort((a, b) => a.start_time.getTime() - b.start_time.getTime());
+  // Ensure we compare at midnight to avoid timezone drift
+  today.setHours(0, 0, 0, 0);
 
-  console.log("All PI Events found:", piEvents); // Check your browser console!
+  const piEvents = calendarEvents.filter(e => 
+    e.event_title.toUpperCase().includes("PI")
+  );
 
-  // Find the one where today is between start and end
-  const current = piEvents.find(event => {
-    const start = new Date(event.start_time);
-    const end = new Date(event.end_time);
-    // Expand the window slightly to handle timezone offsets
-    return today >= start && today < end;
+  // Find the event that covers today
+  const active = piEvents.find(event => {
+    return today >= event.start_time && today <= event.end_time;
   });
 
-  return current || null;
+  return active || null;
 };
