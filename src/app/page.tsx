@@ -9,7 +9,41 @@ import TaskForm from '@/components/TaskForm';
 import ProjectForm from '@/components/ProjectForm';
 import ProjectDashboard from '@/components/ProjectDashboard';
 
+const fetchCalendarEvents = async () => {
+  const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
+  const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(ICS_URL);
+  try {
+    const response = await fetch(PROXY_URL, { cache: 'no-store' });
+    const text = await response.text();
+    const events = text.split("BEGIN:VEVENT");
+    const parsedEvents: any[] = [];
+    events.forEach(event => {
+      const summary = event.match(/SUMMARY:(.*)/i);
+      const start = event.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/i);
+      const end = event.match(/DTEND(?:;VALUE=DATE)?:(\d{8})/i);
+      if (summary && start && end) {
+        const s = start[1];
+        const e = end[1];
+        parsedEvents.push({
+          event_title: summary[1].trim(),
+          start_date: new Date(parseInt(s.slice(0,4)), parseInt(s.slice(4,6)) - 1, parseInt(s.slice(6,8))),
+          end_date: new Date(parseInt(e.slice(0,4)), parseInt(e.slice(4,6)) - 1, parseInt(e.slice(6,8)))
+        });
+      }
+    });
+    return parsedEvents;
+  } catch (error) {
+    return [];
+  }
+};
 
+const getCurrentIteration = (calendarEvents: any[]) => {
+  if (!calendarEvents || calendarEvents.length === 0) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const piEvents = calendarEvents.filter(e => e.event_title.toUpperCase().includes("PI"));
+  return piEvents.find(event => today >= event.start_date && today < event.end_date) || null;
+};
 
 export default function Home() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -372,65 +406,3 @@ if (projectIds) {
   );
 }
 
-const fetchCalendarEvents = async () => {
-  const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
-  const PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(ICS_URL);
-
-  try {
-    const response = await fetch(PROXY_URL, { cache: 'no-store' });
-    const text = await response.text();
-    
-    // Split by event start marker
-    const events = text.split("BEGIN:VEVENT");
-    const parsedEvents: any[] = [];
-
-    events.forEach(event => {
-      // Flexible regex to find Summary, Start, and End regardless of extra tags
-      const summary = event.match(/SUMMARY:(.*)/i);
-      const start = event.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/i);
-      const end = event.match(/DTEND(?:;VALUE=DATE)?:(\d{8})/i);
-
-      if (summary && start && end) {
-        const s = start[1];
-        const e = end[1];
-        
-        parsedEvents.push({
-          event_title: summary[1].trim(),
-          // Parse as YYYY, MM (0-indexed), DD
-          start_date: new Date(parseInt(s.slice(0,4)), parseInt(s.slice(4,6)) - 1, parseInt(s.slice(6,8))),
-          end_date: new Date(parseInt(e.slice(0,4)), parseInt(e.slice(4,6)) - 1, parseInt(e.slice(6,8)))
-        });
-      }
-    });
-
-    console.log("Parsed Events:", parsedEvents);
-    return parsedEvents;
-  } catch (error) {
-    console.error("Calendar Sync Error:", error);
-    return [];
-  }
-};
-
-const getCurrentIteration = (calendarEvents: any[]) => {
-  if (!calendarEvents || calendarEvents.length === 0) return null;
-
-  // Set 'today' to midnight to avoid hour/minute math issues
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Find all PI events
-  const piEvents = calendarEvents.filter(e => 
-    e.event_title.toUpperCase().includes("PI")
-  );
-
-  // Match where today is >= start AND today < end 
- 
-const active = piEvents.find(event => {
-  const s = new Date(event.start_date).setHours(0,0,0,0);
-  const e = new Date(event.end_date).setHours(0,0,0,0);
-  const t = new Date().setHours(0,0,0,0);
-  
-  return t >= s && t < e;
-});
-  return active || null;
-};
