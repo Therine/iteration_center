@@ -359,7 +359,7 @@ max={member.capacity}
 onAddTask={addTask}
 projects={projects}
 tasks={tasks}
-teamMembers={TEAM_MEMBERS.map(m => m.name)}
+teamMembers={TEAM_MEMBERS}
 />
 </section>
 
@@ -400,8 +400,8 @@ allTasks={tasks} />
 {/* 2. ADD THIS: The Unassigned Column */}
 <div className="unassigned-column">
 <h3 className="text-red-500 font-bold">Unassigned Tasks</h3>
-{tasks
-.filter(t => !t.assignee) // This catches null or undefined
+{displayTasks
+.filter(t => !t.assignee || t.assignee === "" || t.assignee === "Unassigned")// This catches null or undefined
 .map(t => (
 <TaskCard
 key={t.id}

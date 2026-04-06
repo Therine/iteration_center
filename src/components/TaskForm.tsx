@@ -87,12 +87,13 @@ console.log("Tasks received in Form:", tasks);
     className="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-900"
     value={assignee} // Use 'assignee' state, not 'taskData.assignee'
     onChange={(e) => setAssignee(e.target.value)} // Use 'setAssignee'
+
   >
     <option value="">Unassigned</option>
-    {teamMembers && teamMembers.map((name: string) => (
-      <option key={name} value={name}>
-        {name}
-      </option>
+  {teamMembers.map((member: any) => (
+    <option key={member.id} value={member.id}>
+      {member.name}
+    </option>
     ))}
   </select>
 </div>
