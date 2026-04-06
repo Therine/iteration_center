@@ -146,45 +146,36 @@ useEffect(() => {
   };
 
   const updateTask = async (id: string, updatedData: any) => {
-  // 1. Separate the project IDs from the rest of the task data
-  const { projectIds, ...taskFields } = updatedData;
+  const { projectIds, dependsOnId, ...taskFields } = updatedData;
 
-  const finalData = {
-    ...taskFields,
-    drive_url: taskFields.drive_url === "" ? null : taskFields.drive_url
-  };
-
-  // 2. Update the main Task record
+  // 1. Update the main task (Title, Size, Assignee, etc.)
   const { error: taskError } = await supabase
     .from('tasks')
     .update(taskFields)
     .eq('id', id);
 
-  if (taskError) {
-    console.error("Update failed:", taskError.message);
-    return;
-  }
-
-  // 3. Sync Project Tags (The many-to-many part)
-  if (projectIds) {
-    // Delete existing links for this task
-    await supabase.from('task_project_links').delete().eq('task_id', id);
+  // 2. Handle Dependency Change
+  if (dependsOnId !== undefined) {
+    // Remove existing dependency for this task
+    await supabase.from('task_dependencies').delete().eq('task_id', id);
     
-    // Insert new links
-    const newLinks = projectIds.map((pId: string) => ({
-      task_id: id,
-      project_id: pId
-    }));
-    
-    if (newLinks.length > 0) {
-      await supabase.from('task_project_links').insert(newLinks);
+    // If a new dependency was selected (and isn't empty)
+    if (dependsOnId) {
+      await supabase.from('task_dependencies').insert({
+        task_id: id,
+        depends_on_id: dependsOnId
+      });
     }
   }
 
-  // 4. Refresh everything
+if (projectIds) {
+    await supabase.from('task_project_links').delete().eq('task_id', id);
+    const newLinks = projectIds.map((pId: string) => ({ task_id: id, project_id: pId }));
+    if (newLinks.length > 0) await supabase.from('task_project_links').insert(newLinks);
+  }
+
   fetchTasks();
 };
-
   const toggleComplete = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase
       .from('tasks')
@@ -328,13 +319,36 @@ useEffect(() => {
         onToggleComplete={toggleComplete}
         onUpdate={updateTask}
         teamMembers={TEAM_MEMBERS}
-        allProjects={projects} />
+        allProjects={projects}
+        allTasks={tasks} />
     ))
   }
 </div>
             
           </div>
         ))}
+        {/* 2. ADD THIS: The Unassigned Column */}
+<div className="unassigned-column">
+  <h3 className="text-red-500 font-bold">Unassigned Tasks</h3>
+  {tasks
+    .filter(t => !t.assignee) // This catches null or undefined
+    .map(t => (
+      <TaskCard 
+        key={t.id} 
+        task={t} 
+        onDelete={deleteTask} 
+        onToggleComplete={toggleComplete}
+        onUpdate={updateTask}
+        teamMembers={TEAM_MEMBERS}
+        allProjects={projects}
+        allTasks={tasks} 
+        // ... rest of your props
+      />
+    ))}
+  {tasks.filter(t => !t.assignee).length === 0 && (
+    <p className="text-gray-400 italic">No unassigned tasks</p>
+  )}
+</div>  
       </section>
     </main>
   );

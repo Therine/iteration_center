@@ -4,13 +4,14 @@ import {
   CheckCircle, Undo, AlertCircle, Edit2, X, Save 
 } from 'lucide-react';
 
-const TaskCard = ({ task, onDelete, onToggleComplete, onUpdate, teamMembers, allProjects }: { 
+const TaskCard = ({ task, onDelete, onToggleComplete, onUpdate, teamMembers, allProjects,allTasks }: { 
   task: any, 
   onDelete: (id: string) => void,
   onToggleComplete: (id: string, currentStatus: boolean) => void,
   onUpdate: (id: string, data: any) => void,
   teamMembers: any[],
-  allProjects: any[]
+  allProjects: any[],
+  allTasks: any[]
 }) => {
   // 1. EDIT STATE
   const [isEditing, setIsEditing] = useState(false);
@@ -142,6 +143,26 @@ const handleSave = () => {
       );
     })}
   </div>
+</div>
+{/* DEPENDENCY EDITING */}
+<div className="mt-4">
+  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+    Blocked By:
+  </label>
+  <select
+    value={task.blocked_by?.[0]?.depends_on?.id || ""}
+    onChange={(e) => onUpdate(task.id, { dependsOnId: e.target.value })}
+    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+  >
+    <option value="">None (Not Blocked)</option>
+    {allTasks
+      .filter((t) => t.id !== task.id && !t.is_completed) // Can't depend on itself or finished work
+      .map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.title}
+        </option>
+      ))}
+  </select>
 </div>
         <div className="flex justify-end gap-2">
           <button onClick={() => setIsEditing(false)} className="px-3 py-2 text-slate-500 font-bold text-xs hover:bg-slate-200 rounded-lg transition-colors">
