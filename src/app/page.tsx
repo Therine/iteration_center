@@ -375,30 +375,33 @@ const fetchCalendarEvents = async () => {
     const response = await fetch(PROXY_URL, { cache: 'no-store' });
     const text = await response.text();
     
-    // Split the ICS file into individual events
+    // Split by event start marker
     const events = text.split("BEGIN:VEVENT");
-    const parsedEvents = [];
+    const parsedEvents: any[] = [];
 
-    for (const event of events) {
-      const titleMatch = event.match(/SUMMARY:(.*)/);
-      const startMatch = event.match(/DTSTART;VALUE=DATE:(\d{8})/);
-      const endMatch = event.match(/DTEND;VALUE=DATE:(\d{8})/);
+    events.forEach(event => {
+      // Flexible regex to find Summary, Start, and End regardless of extra tags
+      const summary = event.match(/SUMMARY:(.*)/i);
+      const start = event.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/i);
+      const end = event.match(/DTEND(?:;VALUE=DATE)?:(\d{8})/i);
 
-      if (titleMatch && startMatch && endMatch) {
-        const rawStart = startMatch[1]; // YYYYMMDD
-        const rawEnd = endMatch[1];     // YYYYMMDD
-
+      if (summary && start && end) {
+        const s = start[1];
+        const e = end[1];
+        
         parsedEvents.push({
-          event_title: titleMatch[1].trim(),
-          // Format YYYY-MM-DD for reliable parsing
-          start_time: new Date(`${rawStart.slice(0,4)}-${rawStart.slice(4,6)}-${rawStart.slice(6,8)}T00:00:00`),
-          end_time: new Date(`${rawEnd.slice(0,4)}-${rawEnd.slice(4,6)}-${rawEnd.slice(6,8)}T23:59:59`)
+          event_title: summary[1].trim(),
+          // Parse as YYYY, MM (0-indexed), DD
+          start_date: new Date(parseInt(s.slice(0,4)), parseInt(s.slice(4,6)) - 1, parseInt(s.slice(6,8))),
+          end_date: new Date(parseInt(e.slice(0,4)), parseInt(e.slice(4,6)) - 1, parseInt(e.slice(6,8)))
         });
       }
-    }
+    });
+
+    console.log("Parsed Events:", parsedEvents);
     return parsedEvents;
   } catch (error) {
-    console.error("Calendar Fetch Error:", error);
+    console.error("Calendar Sync Error:", error);
     return [];
   }
 };
@@ -406,17 +409,19 @@ const fetchCalendarEvents = async () => {
 const getCurrentIteration = (calendarEvents: any[]) => {
   if (!calendarEvents || calendarEvents.length === 0) return null;
 
+  // Set 'today' to midnight to avoid hour/minute math issues
   const today = new Date();
-  // Ensure we compare at midnight to avoid timezone drift
   today.setHours(0, 0, 0, 0);
 
+  // Find all PI events
   const piEvents = calendarEvents.filter(e => 
     e.event_title.toUpperCase().includes("PI")
   );
 
-  // Find the event that covers today
+  // Match where today is >= start AND today < end 
+  // (Standard ICS logic: End date is the morning AFTER the event finishes)
   const active = piEvents.find(event => {
-    return today >= event.start_time && today <= event.end_time;
+    return today >= event.start_date && today < event.end_date;
   });
 
   return active || null;
