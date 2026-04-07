@@ -156,7 +156,7 @@ const TaskCard = ({ task, onDelete, onToggleComplete, onUpdate, teamMembers, all
       </div>
     );
   }
-
+console.log("Card for:", task.title, "Assignee ID:", task.assignee, "Team List:", teamMembers);
   // --- STANDARD DISPLAY UI ---
   return (
     <div className={`p-4 rounded-xl border transition-all ${getCardStyles()}`}>
