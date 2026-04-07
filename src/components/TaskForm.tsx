@@ -13,7 +13,7 @@ export default function TaskForm({ onAddTask, projects, tasks, teamMembers }: {
   // 1. ALL HOOKS AT THE TOP
   const [title, setTitle] = useState('');
   const [size, setSize] = useState(1);
-  const [assignee, setAssignee] = useState('User A');
+  const [assignee, setAssignee] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [drive_url, setDriveUrl] = useState('');
   const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
