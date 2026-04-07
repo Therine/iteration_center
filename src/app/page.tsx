@@ -84,7 +84,8 @@ export default function Home() {
 
   const ITERATION_START = activeIteration.start;
   const ITERATION_END = activeIteration.end;
-  const [viewMode, setViewMode] = useState<'team' | 'project'>('team');
+  // Change the name to layoutMode to avoid the conflict
+  const [layoutMode, setLayoutMode] = useState<'team' | 'project'>('team');
 
   // --- DATABASE FUNCTIONS ---
 
@@ -312,21 +313,21 @@ if (!session) {
 {/* 1. THE VIEW SWITCHER BUTTONS (Put these near your other filters) */}
 <div className="flex bg-slate-200 p-1 rounded-xl mb-8 w-fit">
   <button 
-    onClick={() => setViewMode('team')}
-    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${viewMode === 'team' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+    onClick={() => setLayoutMode('team')}
+    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${layoutMode === 'team' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
   >
     By Team Member
   </button>
   <button 
-    onClick={() => setViewMode('project')}
-    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${viewMode === 'project' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+    onClick={() => setLayoutMode('project')}
+    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${layoutMode === 'project' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
   >
     By Project Roadmap
   </button>
 </div>
 
 {/* 2. THE CONDITIONAL CONTENT */}
-{viewMode === 'team' ? (
+{layoutMode === 'team' ? (
   <div className="flex gap-6 overflow-x-auto pb-8 snap-x">
     {/* YOUR EXISTING TEAM_MEMBERS.map() CODE GOES HERE */}
     {TEAM_MEMBERS.map((member) => (
