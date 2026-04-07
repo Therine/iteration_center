@@ -237,13 +237,15 @@ console.log("Card for:", task.title, "Assignee ID:", task.assignee, "Team List:"
   <div className="flex items-center gap-2 text-slate-500">
     <User size={14} />
     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-      {/* We search the teamMembers array directly here. 
-          .trim() ensures no hidden spaces break the match.
-      */}
-      {teamMembers?.find(m => m.id?.trim() === task.assignee?.trim())?.name 
-        || task.assignee 
-        || "Unassigned"}
-    </span>
+  {
+    // 1. Look for the member object in the array
+    teamMembers?.find(m => m.id === task.assignee)?.name 
+    // 2. If not found, show the ID (so we know the lookup failed)
+    || task.assignee 
+    // 3. If no assignee at all, show Unassigned
+    || "Unassigned"
+  }
+</span>
   </div>
 
         {task.drive_url && (
