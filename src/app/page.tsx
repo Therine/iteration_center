@@ -13,62 +13,6 @@ import Login from '@/components/Login';
 import ProjectView from '@/components/ProjectView';
 
 
-const fetchCalendarEvents = async () => {
-const ICS_URL = "https://calendar.google.com/calendar/ical/c_rdq4brm3fr9ht2pc9lacraeg4g%40group.calendar.google.com/public/basic.ics";
-const PROXY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(ICS_URL)}&timestamp=${Date.now()}`;
-
-try {
-const response = await fetch(PROXY_URL);
-if (!response.ok) return null;
-const data = await response.json();
-const text = data.contents;
-if (!text) return null;
-
-const events = text.split("BEGIN:VEVENT");
-const parsedEvents: any[] = [];
-
-events.forEach((event: string) => {
-const summary = event.match(/SUMMARY:(.*)/i);
-const start = event.match(/DTSTART(?:;VALUE=DATE)?:(\d{8})/i);
-const end = event.match(/DTEND(?:;VALUE=DATE)?:(\d{8})/i);
-
-if (summary && start && end) {
-const s = start[1];
-const e = end[1];
-parsedEvents.push({
-event_title: summary[1].trim(),
-start_date: new Date(parseInt(s.slice(0,4)), parseInt(s.slice(4,6)) - 1, parseInt(s.slice(6,8))),
-end_date: new Date(parseInt(e.slice(0,4)), parseInt(e.slice(4,6)) - 1, parseInt(e.slice(6,8)))
-});
-}
-});
-return parsedEvents;
-} catch (error) {
-console.error("Calendar Sync Error:", error);
-return null;
-}
-};
-
-const getCurrentIteration = (calendarEvents: any[]) => {
-if (!calendarEvents || calendarEvents.length === 0) return null;
-const today = new Date();
-today.setHours(12, 0, 0, 0);
-
-const piEvents = calendarEvents
-.filter(e => e.event_title.toUpperCase().includes("PI"))
-.sort((a, b) => a.start_date.getTime() - b.start_date.getTime());
-
-const active = piEvents.find(event => {
-const start = new Date(event.start_date).setHours(0,0,0,0);
-const end = new Date(event.end_date).setHours(0,0,0,0);
-return today.getTime() >= start && today.getTime() < end;
-});
-
-if (active) return active;
-const future = piEvents.find(event => event.start_date > today);
-return future || piEvents[piEvents.length - 1];
-};
-
 export default function Home() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
